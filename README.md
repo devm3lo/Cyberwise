@@ -40,5 +40,5 @@ Uma aplicação Full-Stack para conectar cidadãos a causas sociais, permitindo 
 
 ### 1. Clone o repositório
 ```bash
-git clone [https://github.com/devm3lo/CyberWise-Project.git](https://github.com/SEU-USUARIO/CyberWise-Project.git)
+git clone [https://github.com/devm3lo/CyberWise.git](https://github.com/devm3lo/CyberWise.git)
 cd CyberWise
