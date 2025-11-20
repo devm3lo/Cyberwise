@@ -196,6 +196,61 @@ async function fetchCampanhaDetalhe() {
         renderList('donation-list', campanha.doacoes, i => `<div class="donation-card"><h4>R$ ${i.valor}</h4><p>${i.usuario_username || 'Anônimo'}</p></div>`, 'Sem doações.');
         renderList('support-list', campanha.apoios, i => `<div class="support-card"><h4>${i.nome_instituicao}</h4><p>${i.tipo_apoio}</p></div>`, 'Sem apoio.');
 
+        // --- NOVA LISTA: COMENTÁRIOS ---
+        renderList('comments-list', campanha.comentarios, (c) => {
+            const data = new Date(c.data_criacao).toLocaleDateString('pt-BR');
+            return `
+            <div class="comment-card">
+                <div class="comment-header">
+                    <span class="comment-author">@${c.usuario_username}</span>
+                    <span>${data}</span>
+                </div>
+                <div class="comment-text">${c.texto}</div>
+            </div>`;
+        }, 'Seja o primeiro a comentar!');
+
+        // --- LÓGICA DO FORMULÁRIO DE COMENTÁRIO ---
+        const commentWrapper = document.getElementById('comment-form-wrapper');
+        if (user) {
+            commentWrapper.innerHTML = `
+                <textarea id="comment-text" rows="3" placeholder="Deixe uma mensagem de apoio..."></textarea>
+                <button id="btn-comment" class="btn-primary" style="width:100%">Publicar Comentário</button>
+            `;
+            
+            document.getElementById('btn-comment').onclick = async (e) => {
+                e.preventDefault();
+                const btn = e.target;
+                const texto = document.getElementById('comment-text').value;
+                
+                if (!texto) return alert("Escreva algo!");
+                
+                btn.disabled = true;
+                btn.innerText = "Enviando...";
+
+                try {
+                    const res = await fetch(`${API_URL}/campanhas/${id}/comentar/`, {
+                        method: 'POST',
+                        headers: { 
+                            'Content-Type': 'application/json',
+                            'Authorization': `Token ${AUTH_TOKEN}`
+                        },
+                        body: JSON.stringify({ texto: texto })
+                    });
+                    
+                    if (!res.ok) throw new Error('Erro ao comentar');
+                    
+                    // Sucesso: Recarrega a página para mostrar o novo comentário
+                    window.location.reload();
+                } catch (err) {
+                    alert(err.message);
+                    btn.disabled = false;
+                    btn.innerText = "Publicar Comentário";
+                }
+            };
+        } else {
+            commentWrapper.innerHTML = `<p>Você precisa <a href="login.html?next=campanha-detalhe.html?id=${id}">fazer login</a> para comentar.</p>`;
+        }
+        
         // 3. Lógica do Botão Participar
         const wrapper = document.getElementById('participate-wrapper');
         
@@ -376,6 +431,18 @@ async function setupDonationForm() {
     const inputDescricao = document.getElementById('descricao');
 
     // 1. Preenche a lista de campanhas ativas
+ async function setupDonationForm() {
+    const form = document.getElementById('donation-form');
+    if (!form) return;
+
+    const selectCampanha = document.getElementById('campanha');
+    const selectTipo = document.getElementById('tipo');
+    const valorGroup = document.getElementById('valor-group');
+    const msgEl = document.getElementById('form-message');
+    const inputValor = document.getElementById('valor');
+    const inputDescricao = document.getElementById('descricao');
+
+    // --- SEU TRECHO CORRETO (PREPARAÇÃO) ---
     try {
         const response = await fetch(`${API_URL}/campanhas/?status=ativa`);
         const campanhas = await response.json();
@@ -385,8 +452,7 @@ async function setupDonationForm() {
             selectCampanha.add(option);
         });
 
-        // POLIMENTO EXTRA: Verifica se viemos de um link "Doar para esta campanha"
-        // Ex: doar.html?campanha=5
+        // Verifica se viemos de um link "Doar para esta campanha"
         const params = new URLSearchParams(window.location.search);
         const preSelectedId = params.get('campanha');
         if (preSelectedId) {
@@ -397,7 +463,7 @@ async function setupDonationForm() {
         console.error('Falha ao buscar campanhas para o form:', error);
     }
 
-    // 2. Lógica visual: Esconde o valor se for doação material
+    // Lógica visual
     selectTipo.addEventListener('change', () => {
         if (selectTipo.value === 'financeira') {
             valorGroup.style.display = 'block';
@@ -405,9 +471,62 @@ async function setupDonationForm() {
         } else {
             valorGroup.style.display = 'none';
             inputValor.required = false;
-            inputValor.value = ''; // Limpa o valor
+            inputValor.value = ''; 
         }
     });
+    // ---------------------------------------
+
+    // --- AQUI ENTRA A PARTE DO ENVIO COM TOKEN ---
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        // Prepara os dados
+        let campanhaId = selectCampanha.value === "" ? null : selectCampanha.value;
+        let valorDoacao = (selectTipo.value === 'material' || inputValor.value === "") ? null : inputValor.value;
+
+        const data = {
+            tipo: selectTipo.value,
+            campanha: campanhaId,
+            valor: valorDoacao,
+            descricao: inputDescricao.value
+        };
+
+        try {
+            // Prepara os headers
+            const headers = { 'Content-Type': 'application/json' };
+            
+            // === AQUI ESTÁ A MÁGICA DO PERFIL ===
+            // Se tiver token, envia. O Backend vai ver e salvar o usuário.
+            if (AUTH_TOKEN) {
+                headers['Authorization'] = `Token ${AUTH_TOKEN}`;
+            }
+            // =====================================
+
+            const response = await fetch(`${API_URL}/doacoes/`, {
+                method: 'POST',
+                headers: headers, // Usa os headers com token (se houver)
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(JSON.stringify(errorData));
+            }
+
+            form.reset();
+            valorGroup.style.display = 'block';
+            msgEl.className = 'success';
+            msgEl.innerText = 'Doação registrada com sucesso! Muito obrigado.';
+            msgEl.style.display = 'block';
+
+        } catch (error) {
+            console.error('Erro ao enviar doação:', error);
+            msgEl.className = 'error';
+            msgEl.innerText = 'Houve um erro ao registrar sua doação.';
+            msgEl.style.display = 'block';
+        }
+    });
+}
 
     // 3. Envio do Formulário
     form.addEventListener('submit', async (e) => {
@@ -667,4 +786,55 @@ async function fetchUserProfile() {
     } catch (error) {
         console.error(error);
     }
+}
+function setupHelpForm() {
+    const form = document.getElementById('help-form');
+    // Se não encontrar o formulário (não estamos na página certa), sai
+    if (!form) return; 
+    
+    const msgEl = document.getElementById('form-message');
+    const token = localStorage.getItem('authToken');
+
+    // Se não tiver token (não logado), bloqueia o formulário
+    if (!token) {
+        form.innerHTML = '<div style="text-align:center; padding:20px;"><p>Você precisa estar <strong>logado</strong> para pedir ajuda.</p><a href="login.html" class="btn-primary">Fazer Login</a></div>';
+        return;
+    }
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const data = {
+            tipo: form.tipo.value,
+            descricao: form.descricao.value,
+        };
+
+        try {
+            const response = await fetch(`${API_URL}/ajuda/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Token ${token}` // Envia o crachá
+                },
+                body: JSON.stringify(data),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(JSON.stringify(errorData));
+            }
+
+            // Sucesso!
+            form.reset();
+            msgEl.className = 'success';
+            msgEl.innerText = 'Seu pedido de ajuda foi enviado! Um voluntário entrará em contato.';
+            msgEl.style.display = 'block';
+
+        } catch (error) {
+            console.error('Erro ao enviar pedido de ajuda:', error);
+            msgEl.className = 'error';
+            msgEl.innerText = 'Houve um erro ao registrar seu pedido. Tente novamente.';
+            msgEl.style.display = 'block';
+        }
+    });
 }

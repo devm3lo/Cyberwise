@@ -1228,3 +1228,63 @@ img {
     color: var(--secondary-text);
     font-size: 14px;
 }
+
+.comments-section {
+    background-color: #f9f9f9; /* Um fundo ligeiramente diferente */
+    border-top: 1px solid #eee;
+}
+
+.comments-section h2 {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 30px;
+    color: var(--dark-text);
+}
+
+/* O Cartão do Comentário */
+.comment-card {
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: var(--secondary-text);
+}
+
+.comment-author {
+    font-weight: 700;
+    color: var(--primary-purple);
+}
+
+.comment-text {
+    font-size: 16px;
+    line-height: 1.5;
+    color: #333;
+}
+
+/* O Formulário de Comentar */
+.comment-form-box {
+    margin-bottom: 40px;
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    border: 1px solid #eee;
+}
+
+.comment-form-box textarea {
+    width: 100%;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-family: inherit;
+    resize: vertical;
+    margin-bottom: 10px;
+}
