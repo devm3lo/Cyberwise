@@ -35,15 +35,13 @@ class Campanha(models.Model):
     titulo = models.CharField(max_length=150)
     descricao = models.TextField()
     
-    # Campo de Imagem
-    imagem_capa = models.ImageField(
-        upload_to='campanhas/', 
-        null=True, 
-        blank=True
-    )
+    # --- ADICIONE ESTA LINHA AQUI ---
+    imagem_capa = models.ImageField(upload_to='campanhas/', null=True, blank=True)
+    # --------------------------------
     
     data_inicio = models.DateField()
     data_fim = models.DateField(null=True, blank=True)
+    # ... (o resto dos campos) ...
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='planejada')
     
     # Relacionamento: Participantes (Usuários)
