@@ -45,13 +45,16 @@ document.addEventListener('DOMContentLoaded', () => {
         
     } else if (path.endsWith('acoes.html')) {
         fetchInstituicoes();
-        
+
+    } else if (path.endsWith('perfil.html')) {
+        fetchUserProfile();
+
     } else if (path.endsWith('checklist.html')) {
         setupInteractiveChecklist();
         
     } else if (path.endsWith('instituicao-detalhe.html')) {
         fetchInstituicaoDetalhe();
-    }
+    } 
     
     // 4. Animações Fade-in (Genérico)
     setupFadeInAnimations();
@@ -68,6 +71,7 @@ function updateHeaderUI() {
         navUl.innerHTML = `
             <li><a href="index.html">HOME</a></li>
             <li><a href="participar.html">CAMPANHAS</a></li>
+            <li><a href="perfil.html">MEU PERFIL</a></li> 
             <li><a href="checklist.html">CHECKLIST</a></li>
             <li><a href="acoes.html">AÇÕES</a></li>
             <li><a href="pedir-ajuda.html">PEDIR AJUDA</a></li> 
@@ -557,5 +561,110 @@ async function fetchInstituicaoDetalhe() {
         console.error('Falha ao carregar instituição:', error);
         // Mostra uma mensagem de erro amigável para o usuário
         detailContainer.innerHTML = '<h2>Erro ao carregar</h2><p>Não foi possível encontrar esta instituição. Tente voltar à página anterior.</p>';
+    }
+}
+
+async function fetchUserProfile() {
+    if (!AUTH_TOKEN) {
+        window.location.href = 'login.html';
+        return;
+    }
+
+    const headers = { 
+        'Content-Type': 'application/json',
+        'Authorization': `Token ${AUTH_TOKEN}` 
+    };
+
+    try {
+        // 1. Busca Dados Básicos do Usuário
+        const userRes = await fetch(`${API_URL}/auth/user/`, { headers });
+        const user = await userRes.json();
+        
+        document.getElementById('profile-username').innerText = user.username;
+        document.getElementById('profile-email').innerText = user.email;
+        document.getElementById('profile-type').innerText = user.tipo || 'Usuário';
+
+        // 2. Busca Minhas Campanhas
+        const campRes = await fetch(`${API_URL}/campanhas/minhas/`, { headers });
+        const campanhas = await campRes.json();
+        const campList = document.getElementById('my-campaigns-list');
+        
+        if (campanhas.length > 0) {
+            campList.innerHTML = '';
+            campanhas.forEach(c => {
+                // Reutiliza o card, mas simplificado
+                let imgUrl = c.imagem_capa ? (c.imagem_capa.startsWith('http') ? c.imagem_capa : `${BASE_URL}${c.imagem_capa}`) : 'images/campanha-placeholder.jpg';
+                campList.insertAdjacentHTML('beforeend', `
+                    <a href="campanha-detalhe.html?id=${c.id}" class="campaign-card-link">
+                        <div class="campaign-card">
+                            <div class="campaign-image" style="height: 150px;">
+                                <img src="${imgUrl}" onerror="this.src='images/campanha-placeholder.jpg'">
+                            </div>
+                            <div class="campaign-content" style="padding: 15px;">
+                                <h4 style="font-size: 18px;">${c.titulo}</h4>
+                            </div>
+                        </div>
+                    </a>
+                `);
+            });
+        } else {
+            campList.innerHTML = '<p>Você ainda não participa de nenhuma campanha.</p>';
+        }
+
+        // 3. Busca Minhas Doações
+        const doaRes = await fetch(`${API_URL}/doacoes/`, { headers });
+        const doacoes = await doaRes.json();
+        const doaList = document.getElementById('my-donations-list');
+        
+        if (doacoes.length > 0) {
+            doaList.innerHTML = '';
+            doacoes.forEach(d => {
+                const valor = d.valor ? `R$ ${d.valor}` : 'Material';
+                const data = new Date(d.data_doacao).toLocaleDateString('pt-BR');
+                doaList.insertAdjacentHTML('beforeend', `
+                    <div class="profile-item-card">
+                        <div>
+                            <strong>${valor}</strong> <br>
+                            <small>${d.tipo}</small>
+                        </div>
+                        <span>${data}</span>
+                    </div>
+                `);
+            });
+        } else {
+            doaList.innerHTML = '<p>Nenhuma doação registrada.</p>';
+        }
+
+        // 4. Busca Meus Pedidos de Ajuda
+        const ajuRes = await fetch(`${API_URL}/ajuda/`, { headers });
+        const ajudas = await ajuRes.json();
+        const ajuList = document.getElementById('my-help-list');
+        
+        if (ajudas.length > 0) {
+            ajuList.innerHTML = '';
+            ajudas.forEach(a => {
+                const data = new Date(a.data_solicitacao).toLocaleDateString('pt-BR');
+                // Badge de status simples
+                let statusColor = a.status === 'concluida' ? 'green' : (a.status === 'pendente' ? 'orange' : 'blue');
+                
+                ajuList.insertAdjacentHTML('beforeend', `
+                    <div class="profile-item-card">
+                        <div>
+                            <strong>${a.tipo.toUpperCase()}</strong> <br>
+                            <small>${a.descricao.substring(0, 50)}...</small>
+                        </div>
+                        <div style="text-align:right">
+                            <span style="color:${statusColor}; font-weight:bold;">${a.status.toUpperCase()}</span><br>
+                            <span style="font-size:12px">${data}</span>
+                        </div>
+                    </div>
+                `);
+            });
+        } else {
+            ajuList.innerHTML = '<p>Nenhum pedido de ajuda realizado.</p>';
+        }
+
+    } catch (error) {
+        console.error(error);
     }
 }

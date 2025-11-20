@@ -1,3 +1,5 @@
+# No arquivo: backend/api/views.py
+
 from rest_framework import viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -13,13 +15,20 @@ class CampanhaViewSet(viewsets.ModelViewSet):
     queryset = Campanha.objects.all().order_by('-data_inicio')
     permission_classes = [IsAuthenticatedOrReadOnly]
     
-    # Usa o Serializer Simples para listas, e o Completo para detalhes
     def get_serializer_class(self):
-        if self.action == 'list':
+        if self.action == 'list' or self.action == 'minhas': # Usa o simples para 'minhas' também
             return CampanhaListSerializer
         return CampanhaDetailSerializer
 
-    # Ação para Entrar/Sair
+    # --- NOVA AÇÃO: MINHAS CAMPANHAS ---
+    @action(detail=False, methods=['get'], permission_classes=[IsAuthenticated])
+    def minhas(self, request):
+        # Filtra campanhas onde o ID do usuário está na lista de participantes
+        user = request.user
+        campanhas = Campanha.objects.filter(participantes=user)
+        serializer = self.get_serializer(campanhas, many=True)
+        return Response(serializer.data)
+
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def participar(self, request, pk=None):
         try:
@@ -46,15 +55,30 @@ class EventoViewSet(viewsets.ModelViewSet):
 class DoacaoViewSet(viewsets.ModelViewSet):
     queryset = Doacao.objects.all()
     serializer_class = DoacaoSerializer
+    permission_classes = [IsAuthenticated] # Só logados veem doações
+
+    # --- FILTRO: SÓ VEJO AS MINHAS DOAÇÕES ---
+    def get_queryset(self):
+        # Se for superuser, vê tudo. Se não, vê só as suas.
+        user = self.request.user
+        if user.is_staff:
+            return Doacao.objects.all()
+        return Doacao.objects.filter(usuario=user)
 
 class AjudaViewSet(viewsets.ModelViewSet):
     queryset = Ajuda.objects.all()
     serializer_class = AjudaSerializer
     permission_classes = [IsAuthenticated]
     
-    # Salva o dono do pedido automaticamente
     def perform_create(self, serializer):
         serializer.save(usuario=self.request.user)
+
+    # --- FILTRO: SÓ VEJO OS MEUS PEDIDOS ---
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_staff:
+            return Ajuda.objects.all()
+        return Ajuda.objects.filter(usuario=user)
 
 class InstituicaoViewSet(viewsets.ModelViewSet):
     queryset = Instituicao.objects.all()

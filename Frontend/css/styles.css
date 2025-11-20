@@ -1186,3 +1186,45 @@ img {
     min-width: 100px;
     display: inline-block;
 }
+
+/* --- 24. ESTILOS DO PERFIL --- */
+
+.profile-block {
+    background: #fff;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+
+.profile-block h2 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    color: var(--primary-purple);
+}
+
+/* Reutiliza o grid de campanhas, mas ajusta para o perfil se necessário */
+.profile-grid {
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+}
+
+/* Estilo simples para itens de lista (doações/ajuda) */
+.profile-item-card {
+    padding: 15px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.profile-item-card strong {
+    color: var(--dark-text);
+}
+.profile-item-card span {
+    color: var(--secondary-text);
+    font-size: 14px;
+}
